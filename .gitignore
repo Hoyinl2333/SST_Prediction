@@ -1,0 +1,27 @@
+# 忽略数据文件
+data/
+
+# 但保留 .gitkeep 文件
+!data/.gitkeep
+
+# 可选择不上传模型
+# checkpoints/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# VSCode 或 PyCharm 配置
+.vscode/
+.idea/
+
+# 虚拟环境
+.venv/
+env/
+*.egg-info/
+
+# 系统文件
+.DS_Store
