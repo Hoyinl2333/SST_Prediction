@@ -3,7 +3,7 @@
 一个用于预测海表温度（SST, Sea Surface Temperature）的深度学习项目
 
 ## 项目结构
-
+```text
 SSTPredictionProject/
 │
 ├── data/ # 数据存放目录（已被 git 忽略，保留空目录）
@@ -17,6 +17,7 @@ SSTPredictionProject/
 ├── requirements.txt # Python 依赖
 ├── .gitignore # Git 忽略规则
 └── README.md # 项目说明
+```
 
 ## 快速开始
 
