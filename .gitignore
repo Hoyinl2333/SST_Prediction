@@ -1,7 +1,7 @@
-# 忽略数据文件
-data/
+# 忽略 data 目录下的所有 .nc 文件
+data/**/*.nc
 
-# 但保留 .gitkeep 文件
+# 保留 .gitkeep 文件（如果你需要确保 data/ 目录存在）
 !data/.gitkeep
 
 # 可选择不上传模型
