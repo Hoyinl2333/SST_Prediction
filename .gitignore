@@ -1,8 +1,12 @@
-# 忽略 data 目录下的所有 .nc 文件
+# 递归忽略 .nc .pt 文件
 data/**/*.nc
+data/**/*.pt
 
-# 保留 .gitkeep 文件（如果你需要确保 data/ 目录存在）
+# 保留所有其他文件
 !data/.gitkeep
+
+# 忽略数据集文件
+data/raw/
 
 # 可选择不上传模型
 # checkpoints/
