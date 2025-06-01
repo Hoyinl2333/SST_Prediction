@@ -41,6 +41,9 @@ def ensure_dir(dir_path):
 # --- 核心训练函数 ---
 def train_epoch(epoch_num, model, dataloader, scheduler, optimizer, device, ocean_mask_for_loss, grad_clip_value=None):
     """执行一个训练 epoch。"""
+    print("进入 train_epoch，准备遍历 dataloader")
+    print(f"dataloader 长度: {len(dataloader)}")
+
     model.train()
     total_loss = 0.0
     
@@ -58,6 +61,7 @@ def train_epoch(epoch_num, model, dataloader, scheduler, optimizer, device, ocea
     )
 
     for batch_idx, batch in enumerate(progress_bar):
+        print(f"获取第 {batch_idx} 个 batch")
         condition_frames = batch["condition"].to(device)
         target_frames_x0 = batch["target"].to(device)
 
