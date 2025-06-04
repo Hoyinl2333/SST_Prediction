@@ -54,8 +54,8 @@ UNET_DOWN_BLOCK_TYPES = tuple(["DownBlock2D"] * len(UNET_BLOCK_OUT_CHANNELS))
 UNET_UP_BLOCK_TYPES = tuple(["UpBlock2D"] * len(UNET_BLOCK_OUT_CHANNELS))
 
 # 条件化 UNet2DModel (通过 class_labels)
-UNET_CLASS_EMBED_TYPE = "projection" # 使用投影层处理 class_labels
-UNET_PROJECTION_CLASS_EMBEDDINGS_INPUT_DIM = CONDITION_EMBED_DIM # 必须与MLP输出的C_cond维度一致
+UNET_CLASS_EMBED_TYPE = "identity" # 当 class_embed_type="identity" 时, num_class_embeds 是 class_labels 向量的实际维度
+UNET_NUM_CLASS_EMBEDS = CONDITION_EMBED_DIM
 NORMAL_NUM_GROUPS = 32 # 做归一化时，把通道维拆成几个 group,通常32
 DROPOUT = 0.0 
 

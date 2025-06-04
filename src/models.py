@@ -28,9 +28,8 @@ class DiffusionUNetWithMLP(nn.Module):
             down_block_types=config.UNET_DOWN_BLOCK_TYPES,
             up_block_types=config.UNET_UP_BLOCK_TYPES,
             # 条件相关的参数 for UNet2DModel
-            class_embed_type=config.UNET_CLASS_EMBED_TYPE, # 例如 'projection'
-            # projection_class_embeddings_input_dim 应该是MLP的输出维度 config.CONDITION_EMBED_DIM
-            projection_class_embeddings_input_dim=config.CONDITION_EMBED_DIM, 
+            class_embed_type=config.UNET_CLASS_EMBED_TYPE,  
+            num_class_embeds=config.UNET_NUM_CLASS_EMBEDS,  
             norm_num_groups=config.NORMAL_NUM_GROUPS, 
             dropout = config.DROPOUT
         )
