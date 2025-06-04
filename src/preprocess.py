@@ -85,59 +85,37 @@ def crop_image(data_array: xr.DataArray, target_height: int, target_width: int) 
     return cropped_data
 
 
+
 def interpolate_land(sst_array: xr.DataArray, method: str = 'linear') -> xr.DataArray:
     """
-    对SST数据中的NaN值（陆地）进行插值。
+    对SST数据中的NaN值（陆地）进行插值，采用 pandas DataFrame 的插值方法，然后用0填充。
+
     sst_array: 原始SST数据，xarray.DataArray，维度应为 (lat, lon)
-    method: scipy.interpolate.griddata 使用的插值方法
-    返回: 插值后的SST数据，xarray.DataArray
+    method: pandas.DataFrame.interpolate 使用的插值方法 ('linear', 'nearest', 'quadratic', 'cubic', etc.)
+            注意：pandas的 'linear' 对于时间序列是一维的，对于二维数据，我们会分别按行和列做。
+    返回: 插值后的SST数据 (NaNs 被填充为0)，xarray.DataArray
     """
-    lat_coords = sst_array[sst_array.dims[0]].values
-    lon_coords = sst_array[sst_array.dims[1]].values
-    sst_values = sst_array.values
+    sst_values_original = sst_array.values.copy() # 获取numpy数组副本
 
-    lon_grid, lat_grid = np.meshgrid(lon_coords, lat_coords)
+    # 转换为pandas DataFrame
+    df = pd.DataFrame(sst_values_original)
 
-    valid_mask = ~np.isnan(sst_values)
-    points = np.array([lon_grid[valid_mask], lat_grid[valid_mask]]).T
-    values = sst_values[valid_mask]
-
-    if points.shape[0] < 3: # griddata对于线性或更高级插值至少需要几个点
-        print(f"警告: 有效数据点不足 ({points.shape[0]}) 以执行插值。将返回原始数组。")
-        return sst_array
-
-    nan_mask = np.isnan(sst_values)
-    grid_to_interpolate_lon = lon_grid[nan_mask]
-    grid_to_interpolate_lat = lat_grid[nan_mask]
-
-    if grid_to_interpolate_lon.size == 0:
-        # print("没有需要插值的NaN值。")
-        return sst_array
-
-    interpolated_values = griddata(points, values, (grid_to_interpolate_lon, grid_to_interpolate_lat), method=method)
-
-    sst_interpolated_values = sst_values.copy()
-    sst_interpolated_values[nan_mask] = interpolated_values
+    # 1. 先按列插值 (axis=0)
+    # limit_direction='both' 会尝试向前和向后填充
+    df.interpolate(method=method, axis=0, limit_direction='both', inplace=True)
     
-    # 检查插值后是否仍有NaN (通常是由于点在凸包外且未指定fill_value)
-    if np.isnan(sst_interpolated_values).any() and method != 'nearest':
-        print(f"警告：使用 '{method}' 插值后仍存在NaN值。尝试对剩余NaN值使用 'nearest' 方法进行插值。")
-        remaining_nan_mask = np.isnan(sst_interpolated_values)
-        # 使用修正后的变量名
-        grid_to_interpolate_lon_remaining = lon_grid[remaining_nan_mask]
-        grid_to_interpolate_lat_remaining = lat_grid[remaining_nan_mask]
-        
-        if grid_to_interpolate_lon_remaining.size > 0:
-            nearest_values = griddata(points, values, (grid_to_interpolate_lon_remaining, grid_to_interpolate_lat_remaining), method='nearest')
-            sst_interpolated_values[remaining_nan_mask] = nearest_values
+    # 2. 再按行插值 (axis=1)
+    df.interpolate(method=method, axis=1, limit_direction='both', inplace=True)
 
-    if np.isnan(sst_interpolated_values).any() and points.shape[0] > 0:
-         print("警告：即使在 'nearest' 填充后，NaN值仍然存在。请检查数据质量或掩码。将使用有效海洋点均值填充剩余NaN。")
-         mean_valid_sst = np.nanmean(values) if values.size > 0 else 0 # 如果values为空则用0
-         sst_interpolated_values[np.isnan(sst_interpolated_values)] = mean_valid_sst
+    # 3. 将剩余的所有NaN值（如果插值未能完全覆盖）填充为0
+    sst_values_filled = df.fillna(0.0).values
 
-    return xr.DataArray(sst_interpolated_values, coords=sst_array.coords, dims=sst_array.dims, name=sst_array.name)
-
+    return xr.DataArray(
+        sst_values_filled.astype(np.float32), 
+        coords=sst_array.coords, 
+        dims=sst_array.dims, 
+        name=sst_array.name
+    )
 
 def get_normalization_stats(file_paths_for_stats, crop_dims, interpolation_method='linear'):
     """
@@ -234,13 +212,6 @@ def create_and_save_patches(
             torch.save(patch_data, filepath)
             patch_idx += 1
     print(f"为日期 {date_str} 创建并保存了 {patch_idx} 个patches。")
-
-
-# src/preprocess.py (仅展示 run_preprocessing 函数的修改，其他函数保持不变)
-
-# ... (ensure_dir, load_single_nc_file, crop_image, interpolate_land, 
-#      get_normalization_stats, normalize_sst, create_land_sea_mask, 
-#      create_and_save_patches 函数代码保持不变) ...
 
 def run_preprocessing():
     """

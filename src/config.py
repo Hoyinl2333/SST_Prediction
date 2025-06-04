@@ -9,7 +9,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir
 
 # --- 数据路径 ---
 DATA_RAW_PATH = os.path.join(PROJECT_ROOT, "data/raw/ERA5")  # 原始NetCDF数据存放路径
-DATA_PROCESSED_PATH = os.path.join(PROJECT_ROOT, "data/processed_data/ERA5") # 预处理后的数据输出路径
+DATA_PROCESSED_PATH = os.path.join(PROJECT_ROOT, "data/processed/ERA5") # 预处理后的数据输出路径
 PATCHES_PATH = os.path.join(DATA_PROCESSED_PATH, "patches")
 LAND_SEA_MASK_PATH = os.path.join(DATA_PROCESSED_PATH, "land_sea_mask.pt")
 NORMALIZATION_STATS_PATH = os.path.join(DATA_PROCESSED_PATH, "normalization_stats.pt")
