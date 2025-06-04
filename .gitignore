@@ -8,9 +8,6 @@ data/**/*.pt
 # 忽略数据集文件
 data/raw/
 
-# 可选择不上传模型
-# checkpoints/
-
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
 
