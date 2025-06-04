@@ -57,6 +57,8 @@ UNET_UP_BLOCK_TYPES = tuple(["UpBlock2D"] * len(UNET_BLOCK_OUT_CHANNELS))
 UNET_CLASS_EMBED_TYPE = "projection" # 使用投影层处理 class_labels
 # UNET_CLASS_EMBED_TYPE = None # 如果想手动将条件添加到时间嵌入中 (更复杂)
 UNET_PROJECTION_CLASS_EMBEDDINGS_INPUT_DIM = CONDITION_EMBED_DIM # 必须与MLP输出的C_cond维度一致
+NORMAL_NUM_GROUPS = 32
+DROPOUT = 0.0
 
 # --- 训练参数 ---
 BATCH_SIZE = 4               # 批量大小 (根据GPU显存调整)

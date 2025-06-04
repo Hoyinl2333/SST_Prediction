@@ -190,10 +190,6 @@ def create_and_save_patches(
     height, width = daily_sst_normalized_array.shape
     sst_np = daily_sst_normalized_array.values # 转换为numpy数组
 
-    # 为当天的patches创建一个子目录 (例如 .../patches/2020-01-01/)
-    date_specific_patch_dir = os.path.join(output_base_dir, date_str)
-    ensure_dir(date_specific_patch_dir) 
-
     patch_idx = 0
     for r in range(0, height - patch_size + 1, stride):
         for c in range(0, width - patch_size + 1, stride):
