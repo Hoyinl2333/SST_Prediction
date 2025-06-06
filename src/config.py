@@ -62,7 +62,7 @@ DROPOUT = 0.0
 # --- 训练参数 ---
 BATCH_SIZE = 4               # 批量大小 (根据GPU显存调整)
 LEARNING_RATE = 1e-4
-NUM_EPOCHS = 10              # 示例训练轮次
+NUM_EPOCHS = 1              # 示例训练轮次
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # DDPM (Denoising Diffusion Probabilistic Models) 参数

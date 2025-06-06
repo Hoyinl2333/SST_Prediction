@@ -75,7 +75,7 @@ def train():
         train_dataset,
         batch_size=config.BATCH_SIZE,
         shuffle=True, # 训练时打乱数据
-        num_workers=4, # 根据CPU核心数调整
+        num_workers = max(1, os.cpu_count() // 2), # 根据CPU核心数调整
         pin_memory=True # 如果使用GPU，可以加速数据传输
     )
     print(f"训练数据加载器准备完毕，每个epoch包含 {len(train_dataloader)} 个批次。")

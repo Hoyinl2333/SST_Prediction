@@ -1,6 +1,6 @@
 # 递归忽略 .nc .pt 文件
-data/**/*.nc
-data/**/*.pt
+*.nc
+*.pt
 
 # 保留所有其他文件
 !data/.gitkeep

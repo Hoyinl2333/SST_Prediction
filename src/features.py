@@ -7,7 +7,7 @@ from datetime import datetime
 import calendar # 用于获取月份天数
 
 # 从当前包（src）中导入配置
-from . import config
+from src import config
 
 # --- 1. 时间编码 ---
 def get_time_features(date_str: str, reference_year: int = 2020):
@@ -25,9 +25,7 @@ def get_time_features(date_str: str, reference_year: int = 2020):
     """
     dt_obj = datetime.strptime(date_str, "%Y-%m-%d")
 
-    # 年份特征 (相对于参考年份进行简单归一化，例如除以一个范围或直接用差值)
-    # 这里我们使用 (年份 - 参考年份) / 10 作为示例，10是一个任意的缩放因子
-    # 在实际应用中，可能需要根据数据跨度调整归一化方式
+    # 年份特征 
     year_norm = (dt_obj.year - reference_year) / 10.0
 
     # 月份的周期性编码 (1-12月)
