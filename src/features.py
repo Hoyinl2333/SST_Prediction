@@ -24,15 +24,15 @@ def get_time_features(date_str: str, reference_year: int = 2020):
     return torch.tensor([year_norm, month_sin, month_cos, day_sin, day_cos], dtype=torch.float32)
 
 # 2.spatail_embedding
-def get_spatial_features(patch_coords: tuple, full_image_dims: tuple, patch_size: int):
+def get_spatial_features(patch_coords: tuple, full_image_dims: tuple,patch_height:int, patch_width: int):
     """
     为给定的patch坐标生成归一化的空间特征 (左上角坐标归一化)。
     返回: torch.Tensor: 包含归一化空间特征的一维张量 (2个特征)。
     """
     row, col = patch_coords
     height, width = full_image_dims
-    normalized_row = row / (height - patch_size)
-    normalized_col = col / (width - patch_size)
+    normalized_row = row / (height - patch_height)
+    normalized_col = col / (width - patch_width)
     return torch.tensor([normalized_row, normalized_col], dtype=torch.float32)
 
 # 3. 条件MLP

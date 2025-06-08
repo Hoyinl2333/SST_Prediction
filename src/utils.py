@@ -50,15 +50,16 @@ def denormalize_sst(normalized_sst_tensor: torch.Tensor, min_val: float, max_val
 def reconstruct_image_from_patches(
     patches_dict: dict, 
     image_dims: tuple,
-    patch_size: int,
+    patch_height: int,
+    patch_width: int
 ) -> torch.Tensor:
     """从patches字典中重建完整图像，重叠区域取平均。"""
     H, W = image_dims
     reconstructed_image = torch.zeros((H, W), dtype=torch.float32)
     count_map = torch.zeros((H, W), dtype=torch.float32)
     for (r, c), patch_tensor in patches_dict.items():
-        reconstructed_image[r:r+patch_size, c:c+patch_size] += patch_tensor
-        count_map[r:r+patch_size, c:c+patch_size] += 1
+        reconstructed_image[r:r+patch_height, c:c+patch_width] += patch_tensor
+        count_map[r:r+patch_height, c:c+patch_width] += 1
     reconstructed_image = torch.where(count_map > 0, reconstructed_image / count_map, 0.0)
     return reconstructed_image
 

@@ -8,8 +8,8 @@ import numpy as np
 import torch
 import pandas as pd
 from tqdm import tqdm
-from src.utils import *
-from src.config import * 
+from . import config
+from .utils import ensure_dir
 
 
 
@@ -18,7 +18,7 @@ def load_single_nc_file(file_path):
     加载单个 NetCDF 文件，返回 SST 数据和经纬度坐标。
     """
     ds = xr.open_dataset(file_path)
-    sst_data = ds[SST_VARIABLE_NAME]
+    sst_data = ds[config.SST_VARIABLE_NAME]
     if 'time' in sst_data.dims and len(sst_data.time) == 1:
         sst_data = sst_data.squeeze('time')
     # 确保维度顺序和坐标升序
@@ -29,7 +29,7 @@ def load_single_nc_file(file_path):
             print(f"警告: 无法将 {file_path} 的维度转置为 ('latitude', 'longitude')。")
     if sst_data['latitude'].values[0] > sst_data['latitude'].values[-1]:
         sst_data = sst_data.reindex(latitude=list(reversed(sst_data['latitude'].values)))
-    return sst_data, ds.get(LON_VARIABLE_NAME), ds.get(LAT_VARIABLE_NAME)
+    return sst_data, ds.get(config.LON_VARIABLE_NAME), ds.get(config.LAT_VARIABLE_NAME)
 
 def crop_image(data_array: xr.DataArray, target_height: int, target_width: int) -> xr.DataArray:
     """
@@ -121,7 +121,8 @@ def create_land_sea_mask(raw_sst_array: xr.DataArray) -> torch.Tensor:
 def create_and_save_patches(
     daily_sst_normalized_array: xr.DataArray, 
     date_str: str, 
-    patch_size: int, 
+    patch_height:int,
+    patch_width:int,
     stride: int, 
     output_base_dir: str
 ):
@@ -132,9 +133,9 @@ def create_and_save_patches(
     sst_np = daily_sst_normalized_array.values
     ensure_dir(output_base_dir)
     patches_one_day = [] # 存储单日的所有patches信息
-    for r in range(0, height - patch_size + 1, stride):
-        for c in range(0, width - patch_size + 1, stride):
-            patch_np = sst_np[r:r + patch_size, c:c + patch_size]
+    for r in range(0, height - patch_width + 1, stride):
+        for c in range(0, width - patch_height + 1, stride):
+            patch_np = sst_np[r:r + patch_width, c:c + patch_height]
             patch_data = {
                 'sst_patch': torch.from_numpy(patch_np.astype(np.float32)),
                 'coords':(r,c)
@@ -155,54 +156,54 @@ def run_preprocessing():
     4. 逐日处理数据：加载、裁剪、插值、归一化。
     5. 调用 create_and_save_patches 将每日所有patches保存到单个汇总文件中。
     """
-    ensure_dir(DATA_PROCESSED_PATH) # 确保预处理数据目录存在
-    ensure_dir(PATCHES_PATH) # 确保patches目录存在
-    ensure_dir(RESULTS_PATH) 
-    ensure_dir(CHECKPOINT_PATH)
-    ensure_dir(FIGURES_PATH)
-    ensure_dir(PREDICTIONS_PATH)
+    ensure_dir(config.DATA_PROCESSED_PATH) # 确保预处理数据目录存在
+    ensure_dir(config.PATCHES_PATH) # 确保patches目录存在
+    ensure_dir(config.RESULTS_PATH) 
+    ensure_dir(config.CHECKPOINT_PATH)
+    ensure_dir(config.FIGURES_PATH)
+    ensure_dir(config.PREDICTIONS_PATH)
 
     # 1. 所有可用文件和对应日期
-    start_date = datetime.strptime(DATA_START_DATE, "%Y-%m-%d")
-    end_date = datetime.strptime(DATA_END_DATE, "%Y-%m-%d")
-    train_end_date = datetime.strptime(TRAIN_PERIOD_END_DATE, "%Y-%m-%d")
+    start_date = datetime.strptime(config.DATA_START_DATE, "%Y-%m-%d")
+    end_date = datetime.strptime(config.DATA_END_DATE, "%Y-%m-%d")
+    train_end_date = datetime.strptime(config.TRAIN_PERIOD_END_DATE, "%Y-%m-%d")
 
     all_files_map = {}
     current_date = start_date
     while current_date <= end_date:
         date_str_nodash = current_date.strftime("%Y%m%d")
-        filepath = os.path.join(DATA_RAW_PATH, FILENAME_TEMPLATE.format(date_str=date_str_nodash))
+        filepath = os.path.join(config.DATA_RAW_PATH, config.FILENAME_TEMPLATE.format(date_str=date_str_nodash))
         if os.path.exists(filepath):
             all_files_map[current_date] = filepath
         current_date += timedelta(days=1)
     
     train_files = [fp for dt, fp in all_files_map.items() if dt <= train_end_date]
     
-    if not os.path.exists(NORMALIZATION_STATS_PATH):
-        min_sst, max_sst = get_normalization_stats(train_files, (IMAGE_TARGET_HEIGHT, IMAGE_TARGET_WIDTH))
-        torch.save({'min_sst': min_sst, 'max_sst': max_sst}, NORMALIZATION_STATS_PATH)
+    if not os.path.exists(config.NORMALIZATION_STATS_PATH):
+        min_sst, max_sst = get_normalization_stats(train_files, (config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH))
+        torch.save({'min_sst': min_sst, 'max_sst': max_sst}, config.NORMALIZATION_STATS_PATH)
     else:
-        stats = torch.load(NORMALIZATION_STATS_PATH)
+        stats = torch.load(config.NORMALIZATION_STATS_PATH)
         min_sst, max_sst = stats['min_sst'], stats['max_sst']
         print(f"已从文件加载归一化参数。min_sst: {min_sst}, max_sst: {max_sst}")
 
-    if not os.path.exists(LAND_SEA_MASK_PATH):
+    if not os.path.exists(config.LAND_SEA_MASK_PATH):
         sample_sst_raw, _, _ = load_single_nc_file(next(iter(all_files_map.values())))
-        sample_sst_cropped = crop_image(sample_sst_raw, IMAGE_TARGET_HEIGHT, IMAGE_TARGET_WIDTH)
-        torch.save(create_land_sea_mask(sample_sst_cropped),LAND_SEA_MASK_PATH)
+        sample_sst_cropped = crop_image(sample_sst_raw, config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH)
+        torch.save(create_land_sea_mask(sample_sst_cropped),config.LAND_SEA_MASK_PATH)
         print("陆海掩码已创建并保存。")
     
     print("开始处理每日数据并生成每日汇总patches...")
     pattches_num = 0
     for dt, fp in tqdm(all_files_map.items(), desc="预处理每日数据"):
         date_str_iso = dt.strftime("%Y-%m-%d")
-        if os.path.exists(os.path.join(PATCHES_PATH, f"{date_str_iso}_daily_patches.pt")):
+        if os.path.exists(os.path.join(config.PATCHES_PATH, f"{date_str_iso}_daily_patches.pt")):
             continue
         sst_raw, _, _ = load_single_nc_file(fp)
-        sst_cropped = crop_image(sst_raw, IMAGE_TARGET_HEIGHT, IMAGE_TARGET_WIDTH)
+        sst_cropped = crop_image(sst_raw, config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH)
         sst_filled = fill_land(sst_cropped,method=None)
         sst_normalized = normalize_sst(sst_filled, min_sst, max_sst)
-        pattches_num = create_and_save_patches(sst_normalized, date_str_iso, PATCH_SIZE, STRIDE, PATCHES_PATH)
+        pattches_num = create_and_save_patches(sst_normalized, date_str_iso, patch_height=config.PATCH_HEIGHT,patch_width=config.PATCHES_WIDTH, stride=config.STRIDE, output_base_dir=config.PATCHES_PATH)
     print(f"已处理 {len(all_files_map)} 天数据，每天生成了 {pattches_num} 个patches。")
     print("数据预处理流程全部完成。")
 

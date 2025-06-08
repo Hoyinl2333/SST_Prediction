@@ -74,7 +74,7 @@ def run_inference(checkpoint_filename = "model_fianl.pt",inference_start_date_st
         for day in range(config.AUTOREGRESSIVE_PREDICT_DAYS):
             target_pred_dt = inference_start_date_dt + timedelta(days=day)
             target_date_str = target_pred_dt.strftime("%Y-%m-%d")
-            lead_time_key = f"Tplus{day+1}"  # 用于存储评估结果的键
+            lead_time_key = f"T+{day+1}"  # 用于存储评估结果的键
             print(f"\n正在预测 {target_date_str} 的数据...")
 
             predicted_patches = {}
@@ -85,9 +85,9 @@ def run_inference(checkpoint_filename = "model_fianl.pt",inference_start_date_st
 
                 # time and spatial features
                 time_feat = get_time_features(target_date_str, reference_year=ref_year).unsqueeze(0).to(device)
-                spatial_feat = get_spatial_features(coords, (config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH), config.PATCH_SIZE).unsqueeze(0).to(device)
+                spatial_feat = get_spatial_features(coords, config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH).unsqueeze(0).to(device)
 
-                noisy_patch_sample = torch.randn(1,config.UNET_OUT_CHANNELS,config.PATCH_SIZE,PATCH_SIZE, device=device)  # (1, C, H, W)
+                noisy_patch_sample = torch.randn(1,config.UNET_OUT_CHANNELS,config.PATCHES_WIDTH,config.PATCHES_WIDTH, device=device)  # (1, C, H, W)
 
                 for t in noise_scheduler.timesteps:
                     pred_noise = model(history_tensor, noisy_sample, torch.tensor([t], device=device).long(), time_feat, spatial_feat)
@@ -106,23 +106,32 @@ def run_inference(checkpoint_filename = "model_fianl.pt",inference_start_date_st
             full_pred_img_norm = reconstruct_image_from_patches(
                 predicted_patches,
                 img_dims=(config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH),
-                patch_size=config.PATCH_SIZE
+                patch_height=config.PATCH_HEIGHT,
+                patch_width=config.PATCHES_WIDTH
             )
             full_pred_img_denorm = denormalize_sst(full_pred_img_norm, min_sst, max_sst).numpy()
             
             # 评估
-            target_img_denorm_np = None
+            target_np  = None
             target_img_path = os.path.join(config.DATA_RAW_PATH, config.FILENAME_TEMPLATE.format(date_str=target_pred_dt.strftime("%Y-%m-%d")))
             if os.path.exists(target_img_path):
                 target_sst_raw,_,_ = load_single_nc_file(target_img_path)
                 target_cropped = crop_image(target_sst_raw, config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH)
-                target_img_denorm_np = target_cropped.values
+                target_np  = target_cropped.values
 
-                mse,rmse = calculate_metrics(full_pred_img_denorm, target_img_denorm_np, land_sea_mask_np)
+                mse,rmse = calculate_metrics(full_pred_img_denorm, target_np, land_sea_mask_np)
                 print(f"  评估结果 ({lead_time_key}, {target_date_str}): RMSE = {rmse:.4f}, MSE = {mse:.4f}")
                 evalution_metrics[lead_time_key].append({'date': target_date_str, 'rmse': rmse, 'mse': mse})
             else:
                 print(f"警告: 目标图像文件 {target_img_path} 不存在，无法计算评估指标。")
+
+            save_img_comparison(
+                full_pred_img_denorm, 
+                target_np, 
+                land_sea_mask_np, 
+                os.path.join(config.PREDICTIONS_PATH, f"prediction_{target_date_str}_{lead_time_key}.png"), 
+                f"{target_date_str} ({lead_time_key}) "
+            )
 
     # 5. 打印最终的评估指标总结
     print("="*50)

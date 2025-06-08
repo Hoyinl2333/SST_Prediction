@@ -106,7 +106,8 @@ class SSTDataset(Dataset):
         spatial_feat = get_spatial_features(
             coords,
             full_image_dims=(config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH),
-            patch_size=config.PATCH_SIZE
+            patch_height=config.PATCH_HEIGHT,
+            patch_width=config.PATCHES_WIDTH
         )
 
         return hist_stack, target, time_feat, spatial_feat
