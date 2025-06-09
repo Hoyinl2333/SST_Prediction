@@ -8,14 +8,15 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 from diffusers import DDPMScheduler
 from . import config
-from .utils import load_checkpoint,denormalize_sst, reconstruct_image_from_patches, calculate_metrics,save_img_comparison,save_as_netcdf
+from .utils import *
 from .models import get_diffusion_model
 from .features import get_time_features, get_spatial_features
 from .preprocess import load_single_nc_file, crop_image
 
 
 def _run_inference_logic(model,noise_scheduler,current_history_all_coords,valid_coords,
-                         inference_start_date_dt,min_sst,max_sst,ref_year,land_sea_mask_np,coords):
+                         inference_start_date_dt,min_sst,max_sst,ref_year,land_sea_mask_np,coords,
+                         inference_results_dir):
     """推理主要逻辑函数"""
     evalution_metrics = defaultdict(list)  # 用于存储评估指标
     with torch.no_grad():
@@ -51,12 +52,12 @@ def _run_inference_logic(model,noise_scheduler,current_history_all_coords,valid_
                 current_history_all_coords[coords] =  current_history_all_coords[coords][:-1] + [predicted_patch_absolute_norm.detach()] # 更新历史数据，保留最新的预测结果
 
             # 重建、评估、可视化
-            _process_daily_results(predicted_patches,target_dt,lead_time_key,min_sst,max_sst,evalution_metrics,land_sea_mask_np,coords)
+            _process_daily_results(predicted_patches,target_dt,lead_time_key,min_sst,max_sst,evalution_metrics,land_sea_mask_np,coords,inference_results_dir)
 
     _print_summary_metrics(evalution_metrics)
 
 
-def _process_daily_results(predicted_patches_cpu, target_dt, lead_time_key, min_sst, max_sst, evaluation_metrics,land_sea_mask_np,coords):
+def _process_daily_results(predicted_patches_cpu, target_dt, lead_time_key, min_sst, max_sst, evaluation_metrics,land_sea_mask_np,coords,inference_results_dir):
     """重建、反归一化、评估、可视化"""
     print(f"  重建图像...")
     full_pred_norm = reconstruct_image_from_patches(
@@ -85,9 +86,9 @@ def _process_daily_results(predicted_patches_cpu, target_dt, lead_time_key, min_
         print(f"  警告: 真实数据文件 {target_filepath} 未找到，无法评估。")
     
     # 保存可视化与原文件
-    output_image_filepath = os.path.join(config.PREDICTIONS_PATH, f"prediction_{target_dt.strftime('%Y-%m-%d')}_{lead_time_key}.png")
+    output_image_filepath = os.path.join(inference_results_dir, f"prediction_{target_dt.strftime('%Y-%m-%d')}_{lead_time_key}.png")
     save_img_comparison(pred_masked, target_np,output_image_filepath, f"{target_dt.strftime('%Y-%m-%d')} ({lead_time_key}) ")
-    nc_save_path = os.path.join(config.PREDICTIONS_PATH,f"pred_sst_{target_dt}.nc")
+    nc_save_path = os.path.join(inference_results_dir,f"pred_sst_{target_dt}.nc")
     save_as_netcdf(pred_masked,coords,nc_save_path)
 
 def _print_summary_metrics(evaluation_metrics):
@@ -103,8 +104,15 @@ def _print_summary_metrics(evaluation_metrics):
             print(f"  {lead_time}: 无评估数据")
 
 
-def run_inference(checkpoint_filename = "model_fianl.pt",inference_start_date_str=None):
-    """总推理入口"""
+def run_inference(checkpoint_relative_path ,inference_start_date_str=None):
+    """
+    总推理入口
+
+    checkpoint_relative_path 例如是 "20250609_21/model_final.pt"
+    """
+    # 结果保存目录
+    inference_results_dir = setup_inference_directory(checkpoint_relative_path)
+
     # 基本配置
     device = config.DEVICE
     stats = torch.load(config.NORMALIZATION_STATS_PATH)
@@ -118,7 +126,8 @@ def run_inference(checkpoint_filename = "model_fianl.pt",inference_start_date_st
         print(f"警告: 加载坐标信息失败: {e}。将无法保存为带坐标的 .nc 文件。"); coords_for_saving = None
 
     model = get_diffusion_model()
-    model = load_checkpoint(os.path.join(config.CHECKPOINT_PATH,checkpoint_filename),model, device) 
+    checkpoint_full_path = os.path.join(config.CHECKPOINT_PATH, checkpoint_relative_path)
+    model = load_checkpoint(os.path.join(config.CHECKPOINT_PATH,checkpoint_full_path),model, device) 
    
     noise_scheduler = DDPMScheduler(num_train_timesteps=config.DDPM_NUM_TRAIN_TIMESTEPS, beta_schedule=config.DDPM_BETA_SCHEDULE)
     noise_scheduler.set_timesteps(config.DDPM_NUM_INFERENCE_STEPS) 
@@ -135,7 +144,7 @@ def run_inference(checkpoint_filename = "model_fianl.pt",inference_start_date_st
 
     date_range = pd.date_range(history_start_dt,inference_start_date_dt-timedelta(days=1))
     for dt in tqdm(date_range,desc="加载初始历史数据"):
-        file_path = os.path.join(config.PATCHES_PATH,f"{dt.strftime("%Y-%m-%d")}_patches.pt")
+        file_path = os.path.join(config.PATCHES_PATH,f"{dt.strftime('%Y-%m-%d')}_patches.pt")
         if os.path.exists(file_path):
             for patch in torch.load(file_path,map_location=device):
                 current_history_all_coords[tuple(patch['coords'])].append(patch['sst_patch'])
@@ -148,11 +157,13 @@ def run_inference(checkpoint_filename = "model_fianl.pt",inference_start_date_st
     ref_year = datetime.strptime(config.DATA_START_DATE,"%Y-%m-%d").year
 
     # 调用统一的核心逻辑函数
-    _run_inference_logic(model, noise_scheduler, current_history_all_coords, valid_coords, inference_start_date_dt, min_sst, max_sst, ref_year, land_sea_mask_np, coords_for_saving)
+    _run_inference_logic(model, noise_scheduler, current_history_all_coords, valid_coords, 
+                         inference_start_date_dt, min_sst, max_sst, ref_year, land_sea_mask_np, coords_for_saving,
+                         inference_results_dir)
 
-    # 推理主体函数
-if __name__ == "__main__":
-    # python -m src.inference
-    run_inference(checkpoint_filename="model_final.pt", inference_start_date_str=None)
-    # 可以根据需要修改checkpoint_filename和inference_start_date_str参数
-    # inference_start_date_str可以设置为特定日期字符串，如"2023-10-01"，如果不设置则默认从训练结束后的下一天开始推理。
+#     # 推理主体函数
+# if __name__ == "__main__":
+#     # python -m src.inference
+#     run_inference(checkpoint_filename="model_final.pt", inference_start_date_str=None)
+#     # 可以根据需要修改checkpoint_filename和inference_start_date_str参数
+#     # inference_start_date_str可以设置为特定日期字符串，如"2023-10-01"，如果不设置则默认从训练结束后的下一天开始推理。

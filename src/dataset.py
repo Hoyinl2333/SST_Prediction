@@ -43,12 +43,12 @@ class SSTDatasetBase(Dataset):
         """ 加载所有每日patch汇总文件到内存 """
         patches_dict = defaultdict(dict)  # [date_str][coords] = sst_tensor
         date_iter = self.start_date_dt
-        temp_date = self.start_date_dt
-        while temp_date <= self.end_date_dt:
-            date_iter.append(temp_date)
-            temp_date += timedelta(days=1)
+        date_range = []
+        while date_iter <= self.end_date_dt:
+            date_range.append(date_iter)
+            date_iter += timedelta(days=1)
         
-        for dt in tqdm(date_iter, desc=f"加载 '{self.mode}' 模式的每日patches"):
+        for dt in tqdm(date_range, desc=f"加载 '{self.mode}' 模式的每日patches"):
             date_str = dt.strftime("%Y-%m-%d")
             file_path = os.path.join(config.PATCHES_PATH, f"{date_str}_patches.pt")
             if os.path.exists(file_path):
@@ -63,9 +63,13 @@ class SSTDatasetBase(Dataset):
         if not self.all_loaded_patches: 
             raise ValueError("没有加载到任何patch数据，请检查数据预处理是否正确。")
         
+        # 获取一个坐标集合
+        first_available_date = sorted(self.all_loaded_patches.keys())[0]
+        coords_set = set(self.all_loaded_patches[first_available_date].keys())
+
         available_dates = sorted(self.all_loaded_patches.keys())
 
-        for coords in tqdm(available_dates, desc=f"为'{self.mode}'模式构建样本序列(Difference)"):
+        for coords in tqdm(coords_set, desc=f"为'{self.mode}'模式构建样本序列(Difference)"):
             for i in range(len(available_dates) - self.history_days):
                 window_of_dates = available_dates[i:i + self.history_days + 1] # 这里我们载入self.history_days + 1天的数据
                 if check_date_contiguity(window_of_dates):
@@ -92,13 +96,16 @@ class SSTDatasetAbsolute(SSTDatasetBase):
         coords = sample['coords']
         window_of_dates = sample['window_of_dates']
 
-        hist_stack = torch.stack([self.all_loaded_patches[d][coords] for d in window_of_dates[:-1]])  # shape: [HISTORY_DAYS, 1, patch_h, patch_w]
+        history_dates = window_of_dates[:-1]
+        target_date = window_of_dates[-1]
 
-        target_patch = self.all_loaded_patches[window_of_dates[-1]][coords]
+        hist_stack = torch.stack([self.all_loaded_patches[d][coords] for d in history_dates])  # shape: [HISTORY_DAYS, 1, patch_h, patch_w]
+
+        target_patch = self.all_loaded_patches[target_date][coords]
         target = target_patch.unsqueeze(0)  # shape: [1, patch_h, patch_w]
 
         time_feat = get_time_features(
-            sample['target_date_str'],
+            history_dates,
             reference_year=datetime.strptime(config.DATA_START_DATE, "%Y-%m-%d").year
         ) # shape:[5]
 

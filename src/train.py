@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from . import config
-from .utils import save_checkpoint, plot_loss_curve, ensure_dir
+from .utils import save_checkpoint, plot_loss_curve,setup_train_directory
 from .dataset import get_dataset
 from .models import get_diffusion_model
 from tqdm import tqdm
@@ -15,8 +15,7 @@ from tqdm import tqdm
 def run_training():
     """训练函数的主体逻辑"""
     print("开始训练流程...")
-    ensure_dir(config.CHECKPOINT_PATH)
-    ensure_dir(config.FIGURES_PATH)
+    train_run_dir  = setup_train_directory()
 
     # 1. 准备数据 (SSTDataset 在单元格9定义)
     print("初始化训练数据集...")
@@ -114,7 +113,7 @@ def run_training():
         print(f"轮次 {epoch+1} 完成。平均训练损失: {avg_epoch_loss_value:.4f}, 当前学习率: {lr_scheduler.get_last_lr()[0]:.2e}")
 
         if (epoch + 1) % config.SAVE_EPOCH_INTERVAL == 0 :
-            checkpoint_filepath = os.path.join(config.CHECKPOINT_PATH, f"model_epoch_{epoch+1}.pt")
+            checkpoint_filepath = os.path.join(train_run_dir, f"model_epoch_{epoch+1}.pt")
             save_checkpoint(epoch + 1, model, optimizer, avg_epoch_loss_value, checkpoint_filepath)
 
     # 最终保存一次模型和loss图 (确保最后的状态被保存)
@@ -122,11 +121,7 @@ def run_training():
     final_loss_value = epoch_losses_history[-1] if epoch_losses_history else float('inf')
     save_checkpoint(config.NUM_EPOCHS, model, optimizer, final_loss_value, final_model_path)
 
-    final_loss_curve_path = os.path.join(config.FIGURES_PATH, "training_loss_curve_final.png")
+    final_loss_curve_path = os.path.join(train_run_dir , "training_loss_curve_final.png")
     plot_loss_curve(epoch_losses_history, final_loss_curve_path)
     
     print("\n训练完成。")
-
-if __name__ == "__main__":
-    # python -m src.train
-    run_training()  # 调用训练函数

@@ -18,7 +18,7 @@ def main():
     action_group.add_argument("--preprocess", action="store_true", help="执行数据预处理流程。")
     action_group.add_argument("--train", action="store_true", help="执行模型训练流程。")
     action_group.add_argument("--inference", action="store_true", help="执行模型推理与评估流程。")
-    parser.add_argument("--checkpoint", type=str, default="model_final.pt", help="用于推理的checkpoint文件名。")
+    parser.add_argument("--checkpoint",type=str,help="用于推理的checkpoint在checkpoints/目录下的相对路径。例如: '20250609_21/model_final.pt'")
     parser.add_argument("--date", type=str, default=None, help="推理开始的日期 (YYYY-MM-DD)。")
     args = parser.parse_args()
 
@@ -27,8 +27,10 @@ def main():
     elif args.train:
         run_training()
     elif args.inference:
-        run_inference(checkpoint_filename=args.checkpoint, inference_start_date_str=args.date)
+        if not args.checkpoint:
+            parser.error("--inference 操作需要一个 --checkpoint 参数。")
+        run_inference(checkpoint_relative_path=args.checkpoint, inference_start_date_str=args.date)
 
 if __name__ == "__main__":
-    # python -m src.main --preprocess && python -m src.main --train && python -m src.main --inference
+    # python -m src.main --preprocess && python -m src.main --train && python -m src.main --inference --checkpoint "20250609_21/model_final.pt"
     main()

@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 from datetime import datetime, timedelta
 import xarray as xr
+from . import config
 
 # --- 文件与目录工具 ---
 def ensure_dir(directory_path):
@@ -148,7 +149,6 @@ def check_date_contiguity(date_str_list:list,date_formate:str='%Y-%m-%d') -> boo
         if dates[i] - dates[i - 1] != one_day_delta:
             print(f"日期 {dates[i]} 和 {dates[i - 1]} 不连续。")
             return False
-    print("所有日期连续。")
     return True
 
 # --- 结果保存工具 ---
@@ -159,3 +159,23 @@ def save_as_netcdf(date_np:np.ndarray,coords_dict:dict,filepath:str,var_name:str
     data_xr = xr.DataArray(data=date_np,dims=dims,coords=coords_dict,name=var_name)
     data_xr.to_netcdf(filepath)
     print(f"预测结果已保存为NetCDF文件: {filepath}")
+
+def setup_train_directory():
+    """为单次训练运行创建并返回一个带时间戳的专属目录。"""
+    now = datetime.now()
+    # 目录名格式: YYYYMMDD_HH
+    train_run_dir = os.path.join(config.CHECKPOINT_PATH, now.strftime("%Y%m%d_%H"))
+    ensure_dir(train_run_dir) 
+    print(f"本次训练产出将保存在: {train_run_dir}")
+    return train_run_dir
+
+def setup_inference_directory(checkpoint_relative_path: str):
+    """根据所使用的checkpoint路径，为单次推理运行创建专属结果目录。"""
+    # 例如, checkpoint_relative_path = "20250609_21/model_final.pt"
+    # 我们希望生成 "20250609_21_model_final"
+    dir_name = checkpoint_relative_path.replace(os.sep, "_").replace(".pt", "").replace(".pth", "")
+    
+    inference_run_dir = os.path.join(config.RESULTS_PATH, dir_name)
+    ensure_dir(inference_run_dir)
+    print(f"本次推理结果将保存在: {inference_run_dir}")
+    return inference_run_dir

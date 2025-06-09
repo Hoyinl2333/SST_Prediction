@@ -160,8 +160,6 @@ def run_preprocessing():
     ensure_dir(config.PATCHES_PATH) # 确保patches目录存在
     ensure_dir(config.RESULTS_PATH) 
     ensure_dir(config.CHECKPOINT_PATH)
-    ensure_dir(config.FIGURES_PATH)
-    ensure_dir(config.PREDICTIONS_PATH)
 
     # 1. 所有可用文件和对应日期
     start_date = datetime.strptime(config.DATA_START_DATE, "%Y-%m-%d")

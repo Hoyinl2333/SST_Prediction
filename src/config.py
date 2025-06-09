@@ -58,9 +58,9 @@ UNET_NUM_CLASS_EMBEDS  = CONDITION_EMBED_DIM
 # --- 训练参数 ---
 BATCH_SIZE = 4
 LEARNING_RATE = 1e-4
-NUM_EPOCHS = 50
+NUM_EPOCHS = 2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-NUM_WORKERS = 8  # DataLoader的工作线程数
+NUM_WORKERS = 0  # DataLoader的工作线程数
 
 DDPM_NUM_TRAIN_TIMESTEPS = 1000
 DDPM_BETA_SCHEDULE = "linear"
@@ -71,10 +71,8 @@ AUTOREGRESSIVE_PREDICT_DAYS = 3
 
 # --- 结果保存路径 ---
 RESULTS_PATH = os.path.join(PROJECT_ROOT, "results")
-CHECKPOINT_PATH = os.path.join(RESULTS_PATH, "checkpoints")
-FIGURES_PATH = os.path.join(RESULTS_PATH, "figures")
-PREDICTIONS_PATH = os.path.join(RESULTS_PATH, "predictions")
-
+CHECKPOINT_PATH = os.path.join(PROJECT_ROOT, "checkpoints")
+# 更详细的逻辑在utils文件结果相关函数中
 
 # --- 其他 ---
 RANDOM_SEED = 42
