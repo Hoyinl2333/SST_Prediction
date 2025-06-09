@@ -5,7 +5,8 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
-from . import config # 导入配置以使用全局参数
+from datetime import datetime, timedelta
+import xarray as xr
 
 # --- 文件与目录工具 ---
 def ensure_dir(directory_path):
@@ -64,14 +65,9 @@ def reconstruct_image_from_patches(
     return reconstructed_image
 
 # --- 评估与绘图工具 ---
-def calculate_metrics(predicted_np:np.ndarray, target_np:np.ndarray,land_sea_mask_np:np.ndarray):
+def calculate_metrics(predicted_np:np.ndarray, target_np:np.ndarray):
     """计算predict和target的MSE,RMSE"""
-
-    # 选择海洋点
-    ocean_pred = predicted_np[land_sea_mask_np]
-    ocean_target = target_np[land_sea_mask_np]
-
-    mse = mean_squared_error(ocean_target, ocean_pred)
+    mse = mean_squared_error(predicted_np, target_np)
     rmse = np.sqrt(mse)
     return mse, rmse
 
@@ -116,15 +112,15 @@ def save_img_comparison(
 
         fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-        im0 = axes[0].imshow(pred_masked, cmap='coolwarm')
+        im0 = axes[0].imshow(pred_masked, cmap='coolwarm',origin='upper')
         axes[0].set_title(f"{title_prefix} Predicted SST")
         plt.colorbar(im0, ax=axes[0], fraction=0.046, pad=0.04)
 
-        im1 = axes[1].imshow(target_masked, cmap='coolwarm')
+        im1 = axes[1].imshow(target_masked, cmap='coolwarm',origin='upper')
         axes[1].set_title(f"{title_prefix} Target SST")
         plt.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04)
 
-        im2 = axes[2].imshow(diff_masked, cmap='RdBu_r')
+        im2 = axes[2].imshow(diff_masked, cmap='RdBu_r',origin='upper')
         axes[2].set_title(f"{title_prefix} Difference (Predicted - Target)")
         plt.colorbar(im2, ax=axes[2], fraction=0.046, pad=0.04)
 
@@ -132,3 +128,34 @@ def save_img_comparison(
     plt.savefig(filepath)
     plt.show()
     print(f"图像对比图已保存到: {filepath}")
+
+def check_date_contiguity(date_str_list:list,date_formate:str='%Y-%m-%d') -> bool:
+    """
+    检查日期列表是否连续。
+    """
+    if len(date_str_list) < 2:
+        return True
+    try:
+        dates = [datetime.strptime(date_str, date_formate) for date_str in date_str_list]
+    except:
+        print("日期格式错误，请检查输入的日期字符串。")
+        return False
+    
+    # 日期间隔
+    one_day_delta = timedelta(days=1)
+
+    for i in range(1, len(dates)):
+        if dates[i] - dates[i - 1] != one_day_delta:
+            print(f"日期 {dates[i]} 和 {dates[i - 1]} 不连续。")
+            return False
+    print("所有日期连续。")
+    return True
+
+# --- 结果保存工具 ---
+def save_as_netcdf(date_np:np.ndarray,coords_dict:dict,filepath:str,var_name:str='sst'):
+    """将np数组保存为nc文件"""
+    ensure_dir(filepath)
+    dims = ('latitude','longtitude')
+    data_xr = xr.DataArray(data=date_np,dims=dims,coords=coords_dict,name=var_name)
+    data_xr.to_netcdf(filepath)
+    print(f"预测结果已保存为NetCDF文件: {filepath}")

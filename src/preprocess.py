@@ -203,7 +203,7 @@ def run_preprocessing():
         sst_cropped = crop_image(sst_raw, config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH)
         sst_filled = fill_land(sst_cropped,method=None)
         sst_normalized = normalize_sst(sst_filled, min_sst, max_sst)
-        pattches_num = create_and_save_patches(sst_normalized, date_str_iso, patch_height=config.PATCH_HEIGHT,patch_width=config.PATCHES_WIDTH, stride=config.STRIDE, output_base_dir=config.PATCHES_PATH)
+        pattches_num = create_and_save_patches(sst_normalized, date_str_iso, patch_height=config.PATCH_HEIGHT,patch_width=config.PATCH_WIDTH, stride=config.STRIDE, output_base_dir=config.PATCHES_PATH)
     print(f"已处理 {len(all_files_map)} 天数据，每天生成了 {pattches_num} 个patches。")
     print("数据预处理流程全部完成。")
 

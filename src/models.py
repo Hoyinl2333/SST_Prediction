@@ -17,7 +17,7 @@ class DiffusionUNetWithMLP(nn.Module):
         # 2. 初始化U-Net (UNet2DModel)
         # 参数从单元格1定义的全局配置中读取
         self.unet = UNet2DModel(
-            sample_size=(config.PATCH_HEIGHT, config.PATCHES_WIDTH),
+            sample_size=(config.PATCH_HEIGHT, config.PATCH_WIDTH),
             in_channels=config.UNET_IN_CHANNELS,
             out_channels=config.UNET_OUT_CHANNELS,
             block_out_channels=config.UNET_BLOCK_OUT_CHANNELS,

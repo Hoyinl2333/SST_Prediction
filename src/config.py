@@ -25,7 +25,7 @@ IMAGE_TARGET_WIDTH = 1440
 
 # --- 预处理参数 ---
 PATCH_HEIGHT = 48
-PATCHES_WIDTH = 48
+PATCH_WIDTH = 48
 STRIDE = 32
 
 # TODO:最后实验使用完整的时间
@@ -34,8 +34,13 @@ DATA_END_DATE = "2020-03-31"
 TRAIN_PERIOD_END_DATE = "2020-02-29"
 
 # --- 特征工程参数 ---
-MLP_HIDDEN_DIMS = [128] # MLP的隐藏层维度
+MLP_HIDDEN_DIMS = [128] # MLP的隐藏层维度 
 CONDITION_EMBED_DIM = 256 # MLP的输出维度，也是U-Net期望的条件向量维度
+
+# --- 模型预测目标模式 ---
+# 可选值: "absolute" (预测绝对SST值 )
+#         "difference" (预测SST差值 )
+PREDICTION_TARGET = "difference" 
 
 # --- 模型参数 ---
 MODEL_ARCHITECTURE = "classic_unet"

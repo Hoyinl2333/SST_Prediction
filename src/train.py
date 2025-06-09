@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from . import config
 from .utils import save_checkpoint, plot_loss_curve, ensure_dir
-from .dataset import SSTDataset
+from .dataset import get_dataset
 from .models import get_diffusion_model
 from tqdm import tqdm
 
@@ -20,7 +20,7 @@ def run_training():
 
     # 1. 准备数据 (SSTDataset 在单元格9定义)
     print("初始化训练数据集...")
-    train_dataset = SSTDataset(mode='train') 
+    train_dataset = get_dataset(mode='train') 
 
     train_dataloader = DataLoader(
         train_dataset,
