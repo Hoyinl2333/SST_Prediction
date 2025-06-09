@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timedelta
 from collections import defaultdict
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset
 from . import config
@@ -46,12 +46,13 @@ class SSTDataset(Dataset):
         
         for dt in tqdm(date_range, desc=f"加载 '{self.mode}' 模式的每日patches"):
             date_str = dt.strftime("%Y-%m-%d")
-            file_path = os.path.join(config.PATCHES_PATH, f"{date_str}_daily_patches.pt")
+            file_path = os.path.join(config.PATCHES_PATH, f"{date_str}_patches.pt")
+            # print(f"加载文件: {file_path}")
             if os.path.exists(file_path):
                 patches_in_file = torch.load(file_path)
                 for patch_data in patches_in_file:
                     patches_dict[date_str][tuple(patch_data['coords'])] = patch_data['sst_patch']
-        print(f"已成功加载 {len(self.all_loaded_patches)} 天的patches数据。")
+        print(f"已成功加载 {len(patches_dict)} 天的patches数据。")
         return patches_dict
 
     def _build_samples(self):
@@ -82,7 +83,7 @@ class SSTDataset(Dataset):
                     history_dates_strs = [(target_dt - timedelta(days=d)).strftime("%Y-%m-%d") for d in range(self.history_days, 0, -1)]
                     samples.append({'history_date_strs': history_dates_strs, 'target_date_str': target_date_str, 'coords': coords})
         
-        print(f"为 '{self.mode}' 模式成功构造了 {len(self.samples)} 个样本序列。")
+        print(f"为 '{self.mode}' 模式成功构造了 {len(samples)} 个样本序列。")
         return samples
 
     def __len__(self):

@@ -30,4 +30,5 @@ def main():
         run_inference(checkpoint_filename=args.checkpoint, inference_start_date_str=args.date)
 
 if __name__ == "__main__":
+    # python -m src.main --preprocess && python -m src.main --train && python -m src.main --inference
     main()

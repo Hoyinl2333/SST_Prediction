@@ -25,7 +25,7 @@ IMAGE_TARGET_WIDTH = 1440
 
 # --- 预处理参数 ---
 PATCH_HEIGHT = 48
-PATCHES_WIDTH = 64
+PATCHES_WIDTH = 48
 STRIDE = 32
 
 # TODO:最后实验使用完整的时间
@@ -51,10 +51,11 @@ UNET_CLASS_EMBED_TYPE = "identity"
 UNET_NUM_CLASS_EMBEDS  = CONDITION_EMBED_DIM
 
 # --- 训练参数 ---
-BATCH_SIZE = 128
+BATCH_SIZE = 4
 LEARNING_RATE = 1e-4
-NUM_EPOCHS = 5 # 笔记本中测试时可以改小，例如 1-5 轮
+NUM_EPOCHS = 50
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+NUM_WORKERS = 8  # DataLoader的工作线程数
 
 DDPM_NUM_TRAIN_TIMESTEPS = 1000
 DDPM_BETA_SCHEDULE = "linear"

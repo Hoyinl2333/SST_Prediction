@@ -6,6 +6,7 @@ import torch.nn as nn
 from datetime import datetime
 import calendar # 用于获取月份天数
 from src import config
+import numpy as np
 
 # 1. time_embedding
 def get_time_features(date_str: str, reference_year: int = 2020):

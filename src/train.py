@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from . import config
 from .utils import save_checkpoint, plot_loss_curve, ensure_dir
 from .dataset import SSTDataset
-from models import get_diffusion_model
+from .models import get_diffusion_model
 from tqdm import tqdm
 
 def run_training():
@@ -26,7 +26,7 @@ def run_training():
         train_dataset,
         batch_size=config.BATCH_SIZE, 
         shuffle=True,
-        num_workers=0, # 如果在Linux上并且没有问题,可以尝试设置为比如 os.cpu_count() // 2
+        num_workers=config.NUM_WORKERS, 
         pin_memory=True if config.DEVICE == "cuda" else False 
     )
     print(f"训练数据加载器准备完毕，每个epoch包含 {len(train_dataloader)} 个批次。")

@@ -57,7 +57,7 @@ def run_inference(checkpoint_filename = "model_fianl.pt",inference_start_date_st
 
     for day_offset in range(config.HISTORY_DAYS):
         dt = history_start_dt + timedelta(days=day_offset)
-        file_path = os.path.join(config.PATCHES_PATH, f"{dt.strftime('%Y-%m-%d')}_daily_patches.pt")
+        file_path = os.path.join(config.PATCHES_PATH, f"{dt.strftime('%Y-%m-%d')}_patches.pt")
         if os.path.exists(file_path):
             for patch_data in torch.load(file_path, map_location=device):
                 current_history_all_coords[tuple(patch_data['coords'])].append(patch_data['sst_patch'])
@@ -85,16 +85,16 @@ def run_inference(checkpoint_filename = "model_fianl.pt",inference_start_date_st
 
                 # time and spatial features
                 time_feat = get_time_features(target_date_str, reference_year=ref_year).unsqueeze(0).to(device)
-                spatial_feat = get_spatial_features(coords, config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH).unsqueeze(0).to(device)
+                spatial_feat = get_spatial_features(coords, (config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH), config.PATCH_HEIGHT, config.PATCHES_WIDTH).unsqueeze(0).to(device)
 
-                noisy_patch_sample = torch.randn(1,config.UNET_OUT_CHANNELS,config.PATCHES_WIDTH,config.PATCHES_WIDTH, device=device)  # (1, C, H, W)
+                noisy_sample = torch.randn(1,config.UNET_OUT_CHANNELS,config.PATCHES_WIDTH,config.PATCHES_WIDTH, device=device)  # (1, C, H, W)
 
                 for t in noise_scheduler.timesteps:
                     pred_noise = model(history_tensor, noisy_sample, torch.tensor([t], device=device).long(), time_feat, spatial_feat)
                     noisy_sample = noise_scheduler.step(pred_noise, t, noisy_sample).prev_sample
                 
 
-                pred_path_normalized = noisy_patch_sample.squeeze(0).squeeze(0) 
+                pred_path_normalized = noisy_sample.squeeze(0).squeeze(0) 
                 predicted_patches[coords] = pred_path_normalized
 
                 # 自回归使用新的预测结果更新历史
@@ -105,7 +105,7 @@ def run_inference(checkpoint_filename = "model_fianl.pt",inference_start_date_st
             print(f"重建图像...")
             full_pred_img_norm = reconstruct_image_from_patches(
                 predicted_patches,
-                img_dims=(config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH),
+                image_dims=(config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH),
                 patch_height=config.PATCH_HEIGHT,
                 patch_width=config.PATCHES_WIDTH
             )
