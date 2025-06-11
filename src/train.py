@@ -129,4 +129,4 @@ def run_training(run_name=None):
     final_loss_curve_path = os.path.join(train_run_dir , "training_loss_curve_final.png")
     plot_loss_curve(epoch_losses_history, final_loss_curve_path)
     
-    print("\n训练完成。")
+    print("训练完成。")

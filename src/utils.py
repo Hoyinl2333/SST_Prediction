@@ -81,7 +81,6 @@ def save_as_netcdf(date_np:np.ndarray,filepath:str,lat_np:np.ndarray,lon_np:np.n
     dims = (lat_name,lon_name)
 
     data_xr = xr.DataArray(data=date_np,dims=dims,coords=coords_dict,name=var_name)
-    print(data_xr)
     data_xr.to_netcdf(filepath)
     print(f"预测结果已保存为NetCDF文件: {filepath}")
 
@@ -158,22 +157,22 @@ def save_img(
         fig, ax = plt.subplots(1, 1, figsize=(7, 5))
         im = ax.imshow(pred_np, cmap='coolwarm')
         ax.set_title(f"{title_prefix} Predicted SST")
-        plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)  
+        fig.colorbar(im, ax=ax)  
         output_info = f"预测图象已保存到: {filepath}"
     else:
         fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
         im0 = axes[0].imshow(pred_np, cmap='coolwarm',origin='lower')
         axes[0].set_title(f"{title_prefix} Predicted SST")
-        plt.colorbar(im0, ax=axes[0], fraction=0.046, pad=0.04)
+        fig.colorbar(im0, ax=axes[0])
 
         im1 = axes[1].imshow(target_np, cmap='coolwarm',origin='lower')
         axes[1].set_title(f"{title_prefix} Target SST")
-        plt.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04)
+        fig.colorbar(im1, ax=axes[1])
 
         im2 = axes[2].imshow(pred_np - target_np, cmap='RdBu_r',origin='lower')
         axes[2].set_title(f"{title_prefix} Difference (Predicted - Target)")
-        plt.colorbar(im2, ax=axes[2], fraction=0.046, pad=0.04)
+        fig.colorbar(im2, ax=axes[2])
 
         output_info = f"对比图像已保存到: {filepath}"
 
