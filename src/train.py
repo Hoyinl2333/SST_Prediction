@@ -13,10 +13,10 @@ from .dataset import get_dataset
 from .models import get_diffusion_model
 from tqdm import tqdm
 
-def run_training():
+def run_training(run_name=None):
     """训练函数的主体逻辑"""
     print("开始训练流程...")
-    train_run_dir  = setup_train_directory()
+    train_run_dir  = setup_train_directory(run_name)
 
     # 1. 准备数据 (SSTDataset 在单元格9定义)
     print("初始化训练数据集...")
@@ -39,6 +39,7 @@ def run_training():
     
     if config.DEVICE == "cuda" and torch.cuda.device_count() > 1:
         model = nn.DataParallel(model, device_ids=config.GPU_IDS)  # 多GPU
+    print(f"GPU = {model.device_ids if isinstance(model, nn.DataParallel) else 'Single GPU'}")
     model.to(device)
 
     # 3. 初始化 DDPM 噪声调度器

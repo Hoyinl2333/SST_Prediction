@@ -205,11 +205,14 @@ def check_date_contiguity(date_str_list:list,date_formate:str='%Y-%m-%d') -> boo
 
 # --- 结果保存工具 ---
 
-def setup_train_directory():
+def setup_train_directory(run_name=None):
     """为单次训练运行创建并返回一个带时间戳的专属目录。"""
     now = datetime.now()
     # 目录名格式: YYYYMMDD_HH
-    train_run_dir = os.path.join(config.CHECKPOINT_PATH, now.strftime("%Y%m%d_%H"))
+    if run_name is None:
+        train_run_dir = os.path.join(config.CHECKPOINT_PATH, now.strftime("%Y%m%d_%H"))
+    else:
+        train_run_dir = os.path.join(config.CHECKPOINT_PATH, run_name)
     ensure_dir(train_run_dir) 
     print(f"本次训练产出将保存在: {train_run_dir}")
     return train_run_dir
@@ -218,7 +221,7 @@ def setup_inference_directory(checkpoint_relative_path: str):
     """根据所使用的checkpoint路径，为单次推理运行创建专属结果目录。"""
     # 例如, checkpoint_relative_path = "20250609_21/model_final.pt"
     # 我们希望生成 "20250609_21_model_final"
-    dir_name = checkpoint_relative_path.replace("/", "_").replace(".pt", "").replace(".pth", "")
+    dir_name = checkpoint_relative_path.replace("/", "_").replace("\\", "_").replace(".pt", "").replace(".pth", "")
     inference_run_dir = os.path.join(config.RESULTS_PATH, dir_name)
     
     inference_run_dir = os.path.join(config.RESULTS_PATH, dir_name)

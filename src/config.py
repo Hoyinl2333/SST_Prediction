@@ -82,7 +82,7 @@ RANDOM_SEED = 42
 LOG_INTERVAL = 1000 # 训练时日志打印间隔
 SAVE_EPOCH_INTERVAL = 10 # 训练时模型保存间隔 
 
-print("="*10+" config.py 关键信息打印 "+"="*10)
+print("\n"+"="*10+" config.py 关键信息打印 "+"="*10)
 print(f"项目根目录设置为: {PROJECT_ROOT}")
 print(f"原始数据路径: {DATA_RAW_PATH}")
 print(f"预处理数据路径: {DATA_PROCESSED_PATH}")
@@ -91,4 +91,4 @@ print(f"训练轮数 (NUM_EPOCHS) 设置为: {NUM_EPOCHS} ")
 print(f"DDPM训练时间步数 (DDPM_NUM_TRAIN_TIMESTEPS) 设置为: {DDPM_NUM_TRAIN_TIMESTEPS}")
 print(f"DDPM推理时间步数 (DDPM_NUM_INFERENCE_STEPS) 设置为: {DDPM_NUM_INFERENCE_STEPS}")
 print(f"保存检查点间隔 (SAVE_EPOCH_INTERVAL) 设置为: {SAVE_EPOCH_INTERVAL} ")
-print("="*50)
+print("="*50+"\n")

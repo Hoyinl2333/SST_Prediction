@@ -106,11 +106,13 @@ def _print_summary_metrics(evaluation_metrics):
             print(f"  {lead_time}: 无评估数据")
 
 
-def run_inference(checkpoint_relative_path ,inference_start_date_str=None):
+def run_inference(checkpoint_relative_path):
     """
     总推理入口
 
-    checkpoint_relative_path 例如是 "20250609_21/model_final.pt"
+    Args:
+        checkpoint_relative_path (str): 从 'checkpoints/' 目录开始的模型文件相对路径。
+                                         例如: 'run_20250611_11/model_final.pt'
     """
     # 结果保存目录
     inference_paths = setup_inference_directory(checkpoint_relative_path)
@@ -128,10 +130,7 @@ def run_inference(checkpoint_relative_path ,inference_start_date_str=None):
     noise_scheduler.set_timesteps(config.DDPM_NUM_INFERENCE_STEPS) 
 
     # 历史数据加载
-    if inference_start_date_str is None:
-        inference_start_date_dt = datetime.strptime(config.TRAIN_PERIOD_END_DATE,"%Y-%m-%d") + timedelta(days=1)
-    else:
-        inference_start_date_dt = datetime.strptime(inference_start_date_str,"%Y-%m-%d")
+    inference_start_date_dt = datetime.strptime(config.TRAIN_PERIOD_END_DATE,"%Y-%m-%d") + timedelta(days=1)
     print(f"将从日期 {inference_start_date_dt.strftime('%Y-%m-%d')} 开始进行 {config.AUTOREGRESSIVE_PREDICT_DAYS} 天的自回归预测。")
     
     history_start_dt = inference_start_date_dt - timedelta(days=config.HISTORY_DAYS)
