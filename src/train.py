@@ -8,17 +8,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from . import config
-from .utils import save_checkpoint, plot_loss_curve,setup_train_directory
+from .utils import save_checkpoint, plot_loss_curve,setup_train_directory,save_config
 from .dataset import get_dataset
 from .models import get_diffusion_model
 from tqdm import tqdm
+
 
 def run_training(run_name=None):
     """训练函数的主体逻辑"""
     print("开始训练流程...")
     train_run_dir  = setup_train_directory(run_name)
 
-    # 1. 准备数据 (SSTDataset 在单元格9定义)
+    # 0. 保存配置
+    save_config(os.path.join(train_run_dir,'config.json'))
+
+    # 1. 准备数据 
     print("初始化训练数据集...")
     train_dataset = get_dataset(mode='train') 
 
@@ -31,7 +35,7 @@ def run_training(run_name=None):
     )
     print(f"训练数据加载器准备完毕，每个epoch包含 {len(train_dataloader)} 个批次。")
 
-    # 2. 初始化模型 (get_diffusion_model 在单元格10定义)
+    # 2. 初始化模型 
     print("初始化模型...")
     model = get_diffusion_model() 
     device = config.DEVICE
@@ -93,7 +97,14 @@ def run_training(run_name=None):
                 device=device 
             ).long()
             noisy_target_patch = noise_scheduler.add_noise(target_patch, noise, timesteps)
-            
+
+            # if step == 0 and epoch == 0: 
+            #     print(f"\n\n--- 调试信息 ---")
+            #     print(f"目标 (加噪声前) | 均值: {target_patch.mean():.6f}, 标准差: {target_patch.std():.6f}")
+            #     print(f"添加的随机噪声 | 均值: {noise.mean():.6f}, 标准差: {noise.std():.6f}")
+            #     print(f"加噪后的目标 | 均值: {noisy_target_patch.mean():.6f}, 标准差: {noisy_target_patch.std():.6f}")
+            #     print(f"--- 调试信息结束 ---\n")
+
             optimizer.zero_grad()
             predicted_noise = model(
                 history_patches, 

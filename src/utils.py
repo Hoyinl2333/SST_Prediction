@@ -9,6 +9,8 @@ from sklearn.metrics import mean_squared_error
 from datetime import datetime, timedelta
 import xarray as xr
 from . import config
+import inspect
+import json
 
 # --- 文件与目录工具 ---
 def ensure_dir(directory_path):
@@ -84,6 +86,18 @@ def save_as_netcdf(date_np:np.ndarray,filepath:str,lat_np:np.ndarray,lon_np:np.n
     data_xr.to_netcdf(filepath)
     print(f"预测结果已保存为NetCDF文件: {filepath}")
 
+def save_config(file_name):
+    """ 保存config中所有的大写变量 """
+    config_dict = {}
+    for key , value in inspect.getmembers(config):
+        if key.isupper():
+            if isinstance(value, tuple):
+                config_dict[key] = list(value)
+            else:
+                config_dict[key] = value
+    with open(file_name, 'w') as f:
+        json.dump(config_dict, f, indent=4)
+    print(f"配置已经成功保存至：{file_name}")
 
 # --- 数据转换工具 ---
 def denormalize_sst(normalized_sst_tensor: torch.Tensor, min_val: float, max_val: float) -> torch.Tensor:

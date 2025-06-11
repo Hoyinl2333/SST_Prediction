@@ -64,7 +64,7 @@ def main():
 
         print("--- 步骤 3/3: 执行模型推理 ---")
         checkpoint_for_pipeline = os.path.join("checkpoints",run_name, "model_final.pth")
-        run_inference(checkpoint_relative_path=checkpoint_for_pipeline)
+        run_inference(checkpoint_path=checkpoint_for_pipeline)
         print("--- 模型推理完成 ---\n")
     
     print("=== 操作完成 ===")
