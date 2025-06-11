@@ -26,7 +26,9 @@ IMAGE_TARGET_WIDTH = 1440
 # --- 预处理参数 ---
 PATCH_HEIGHT = 48
 PATCH_WIDTH = 48
-STRIDE = 32
+STRIDE = 24
+
+# 每天生成的 #patches = ((IMAGE_TARGET_HEIGHT - PATCH_HEIGHT)/STRIDE + 1) * ((IMAGE_TARGET_WIDTH - PATCH_WIDTH)/STRIDE +1)
 
 # TODO:最后实验使用完整的时间
 DATA_START_DATE = "2020-01-01"
@@ -56,17 +58,18 @@ UNET_CLASS_EMBED_TYPE = "identity"
 UNET_NUM_CLASS_EMBEDS  = CONDITION_EMBED_DIM
 
 # --- 训练参数 ---
-BATCH_SIZE = 4
+BATCH_SIZE = 64
 LEARNING_RATE = 1e-4
-NUM_EPOCHS = 2
+NUM_EPOCHS = 1
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+GPU_IDS =  [0,1] # 只有多卡时用这个才有效
 NUM_WORKERS = 0  # DataLoader的工作线程数
 
 DDPM_NUM_TRAIN_TIMESTEPS = 1000
 DDPM_BETA_SCHEDULE = "linear"
 
 # --- 推理参数 ---
-DDPM_NUM_INFERENCE_STEPS = 50
+DDPM_NUM_INFERENCE_STEPS = 1
 AUTOREGRESSIVE_PREDICT_DAYS = 3
 
 # --- 结果保存路径 ---
@@ -79,6 +82,7 @@ RANDOM_SEED = 42
 LOG_INTERVAL = 1000 # 训练时日志打印间隔
 SAVE_EPOCH_INTERVAL = 10 # 训练时模型保存间隔 
 
+print("="*10+" config.py 关键信息打印 "+"="*10)
 print(f"项目根目录设置为: {PROJECT_ROOT}")
 print(f"原始数据路径: {DATA_RAW_PATH}")
 print(f"预处理数据路径: {DATA_PROCESSED_PATH}")
@@ -87,3 +91,4 @@ print(f"训练轮数 (NUM_EPOCHS) 设置为: {NUM_EPOCHS} ")
 print(f"DDPM训练时间步数 (DDPM_NUM_TRAIN_TIMESTEPS) 设置为: {DDPM_NUM_TRAIN_TIMESTEPS}")
 print(f"DDPM推理时间步数 (DDPM_NUM_INFERENCE_STEPS) 设置为: {DDPM_NUM_INFERENCE_STEPS}")
 print(f"保存检查点间隔 (SAVE_EPOCH_INTERVAL) 设置为: {SAVE_EPOCH_INTERVAL} ")
+print("="*50)

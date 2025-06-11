@@ -9,27 +9,8 @@ import torch
 import pandas as pd
 from tqdm import tqdm
 from . import config
-from .utils import ensure_dir
+from .utils import ensure_dir,load_single_nc_file
 
-
-
-def load_single_nc_file(file_path):
-    """
-    加载单个 NetCDF 文件，返回 SST 数据和经纬度坐标。
-    """
-    ds = xr.open_dataset(file_path)
-    sst_data = ds[config.SST_VARIABLE_NAME]
-    if 'time' in sst_data.dims and len(sst_data.time) == 1:
-        sst_data = sst_data.squeeze('time')
-    # 确保维度顺序和坐标升序
-    if sst_data.dims != ('latitude', 'longitude'):
-        try:
-            sst_data = sst_data.transpose('latitude', 'longitude')
-        except ValueError:
-            print(f"警告: 无法将 {file_path} 的维度转置为 ('latitude', 'longitude')。")
-    if sst_data['latitude'].values[0] > sst_data['latitude'].values[-1]:
-        sst_data = sst_data.reindex(latitude=list(reversed(sst_data['latitude'].values)))
-    return sst_data, ds.get(config.LON_VARIABLE_NAME), ds.get(config.LAT_VARIABLE_NAME)
 
 def crop_image(data_array: xr.DataArray, target_height: int, target_width: int) -> xr.DataArray:
     """
@@ -203,6 +184,9 @@ def run_preprocessing():
         sst_normalized = normalize_sst(sst_filled, min_sst, max_sst)
         pattches_num = create_and_save_patches(sst_normalized, date_str_iso, patch_height=config.PATCH_HEIGHT,patch_width=config.PATCH_WIDTH, stride=config.STRIDE, output_base_dir=config.PATCHES_PATH)
     print(f"已处理 {len(all_files_map)} 天数据，每天生成了 {pattches_num} 个patches。")
+    pred_num_of_daily_patches = ((config.IMAGE_TARGET_HEIGHT - config.PATCH_HEIGHT)/config.STRIDE + 1) * ((config.IMAGE_TARGET_WIDTH - config.PATCH_WIDTH)/config.STRIDE +1)
+    if pattches_num != pred_num_of_daily_patches:
+        raise ValueError(f"选取的patch参数不能合适裁剪！理论裁剪pathes数：{pred_num_of_daily_patches}")
     print("数据预处理流程全部完成。")
 
 # 执行预处理流程

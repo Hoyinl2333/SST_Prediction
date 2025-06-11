@@ -11,12 +11,12 @@ from . import config
 from .utils import *
 from .models import get_diffusion_model
 from .features import get_time_features, get_spatial_features
-from .preprocess import load_single_nc_file, crop_image
+from .preprocess import crop_image
 
 
 def _run_inference_logic(model,noise_scheduler,current_history_all_coords,valid_coords,
-                         inference_start_date_dt,min_sst,max_sst,ref_year,land_sea_mask_np,coords,
-                         inference_results_dir):
+                         inference_start_date_dt,min_sst,max_sst,ref_year,land_sea_mask_np,
+                         lat_coords_np,lon_coords_np,inference_paths):
     """推理主要逻辑函数"""
     evalution_metrics = defaultdict(list)  # 用于存储评估指标
     with torch.no_grad():
@@ -36,37 +36,38 @@ def _run_inference_logic(model,noise_scheduler,current_history_all_coords,valid_
                 for t in noise_scheduler.timesteps:
                     pred_noise = model(history_tensor, noisy_sample, torch.tensor([t], device=config.DEVICE).long(), time_feat, spatial_feat)
                     noisy_sample = noise_scheduler.step(pred_noise, t, noisy_sample).prev_sample
-            predicted_patch_norm  = noisy_sample.squeeze(0).squeeze(0)  # (H, W)
+                predicted_patch_norm  = noisy_sample.squeeze(0).squeeze(0)  # (H, W)
             
-            # 根据不同模式获得目标的绝对值
-            if config.PREDICTION_TARGET == 'absolute':
-                predicted_patch_absolute_norm = predicted_patch_norm
-            elif config.PREDICTION_TARGET == 'difference':
-                predicted_patch_absolute_norm = current_history_all_coords[coords][-1] + predicted_patch_norm
-            else:
-                raise ValueError(f"不存在{config.PREDICTION_TARGET}! ")
+                # 根据不同模式获得目标的绝对值
+                if config.PREDICTION_TARGET == 'absolute':
+                    predicted_patch_absolute_norm = predicted_patch_norm
+                elif config.PREDICTION_TARGET == 'difference':
+                    predicted_patch_absolute_norm = current_history_all_coords[coords][-1] + predicted_patch_norm
+                else:
+                    raise ValueError(f"不存在{config.PREDICTION_TARGET}! ")
             
-            predicted_patches[coords] = predicted_patch_absolute_norm.cpu()
-            # 自回归使用新的预测结果更新历史
-            if i < config.AUTOREGRESSIVE_PREDICT_DAYS - 1:
-                current_history_all_coords[coords] =  current_history_all_coords[coords][:-1] + [predicted_patch_absolute_norm.detach()] # 更新历史数据，保留最新的预测结果
-
+                predicted_patches[coords] = predicted_patch_absolute_norm.cpu()
+                # 自回归使用新的预测结果更新历史
+                if i < config.AUTOREGRESSIVE_PREDICT_DAYS - 1:
+                    current_history_all_coords[coords] =[predicted_patch_norm.detach()] + current_history_all_coords[coords][1:]  # 更新历史数据，保留最新的预测结果
             # 重建、评估、可视化
-            _process_daily_results(predicted_patches,target_dt,lead_time_key,min_sst,max_sst,evalution_metrics,land_sea_mask_np,coords,inference_results_dir)
+            _process_daily_results(predicted_patches,target_dt,lead_time_key,min_sst,max_sst,evalution_metrics,land_sea_mask_np,lat_coords_np,lon_coords_np,inference_paths)
 
     _print_summary_metrics(evalution_metrics)
 
 
-def _process_daily_results(predicted_patches_cpu, target_dt, lead_time_key, min_sst, max_sst, evaluation_metrics,land_sea_mask_np,coords,inference_results_dir):
+def  _process_daily_results(predicted_patches_cpu, target_dt, lead_time_key, min_sst, max_sst, evaluation_metrics,land_sea_mask_np,lat_coords_np,lon_coords_np,inference_paths):
     """重建、反归一化、评估、可视化"""
     print(f"  重建图像...")
     full_pred_norm = reconstruct_image_from_patches(
         predicted_patches_cpu,
         (config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH),
-        config.PATCH_HEIGHT, config.PATCH_WIDTH, config.STRIDE
+        config.PATCH_HEIGHT, config.PATCH_WIDTH
     )
     full_pred_denorm = denormalize_sst(full_pred_norm, min_sst, max_sst).numpy()
     pred_masked = np.where(land_sea_mask_np,full_pred_denorm,np.nan)
+    output_image_filepath = os.path.join(inference_paths['images'], f"prediction_{target_dt.strftime('%Y-%m-%d')}_{lead_time_key}.png")
+    save_img(pred_masked, None ,output_image_filepath, f"{target_dt.strftime('%Y-%m-%d')} ({lead_time_key}) ")
 
     # 加载真实数据进行评估
     target_np = None
@@ -77,19 +78,20 @@ def _process_daily_results(predicted_patches_cpu, target_dt, lead_time_key, min_
             gt_cropped = crop_image(gt_raw, config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH)
             target_np = gt_cropped.values
 
-            rmse, mse = calculate_metrics(pred_masked, target_np)
+            mse,rmse = calculate_metrics(pred_masked, target_np,land_sea_mask_np)
             print(f"  评估结果 ({lead_time_key}): RMSE = {rmse:.4f}, MSE = {mse:.4f}")
             evaluation_metrics[lead_time_key].append({'date': target_dt.strftime('%Y-%m-%d'), 'rmse': rmse, 'mse': mse})
         except Exception as e:
-            print(f"  加载真实数据或评估时出错: {e}")
+            raise ValueError(f"  加载真实数据或评估时出错: {e}")
     else:
         print(f"  警告: 真实数据文件 {target_filepath} 未找到，无法评估。")
     
     # 保存可视化与原文件
-    output_image_filepath = os.path.join(inference_results_dir, f"prediction_{target_dt.strftime('%Y-%m-%d')}_{lead_time_key}.png")
-    save_img_comparison(pred_masked, target_np,output_image_filepath, f"{target_dt.strftime('%Y-%m-%d')} ({lead_time_key}) ")
-    nc_save_path = os.path.join(inference_results_dir,f"pred_sst_{target_dt}.nc")
-    save_as_netcdf(pred_masked,coords,nc_save_path)
+    output_comparsion_image_filepath = os.path.join(inference_paths['images'], f"comparison_prediction_{target_dt.strftime('%Y-%m-%d')}_{lead_time_key}.png")
+    save_img(pred_masked, target_np,output_comparsion_image_filepath,f"{target_dt.strftime('%Y-%m-%d')} ({lead_time_key}) ")
+    nc_save_path = os.path.join(inference_paths['data'],f"pred_sst_{target_dt.strftime('%Y-%m-%d')}.nc")
+    save_as_netcdf(pred_masked,nc_save_path,lat_coords_np,lon_coords_np,
+                   lat_name=config.LAT_VARIABLE_NAME,lon_name=config.LON_VARIABLE_NAME,var_name=config.SST_VARIABLE_NAME)
 
 def _print_summary_metrics(evaluation_metrics):
     """打印评估结果mse"""
@@ -111,19 +113,12 @@ def run_inference(checkpoint_relative_path ,inference_start_date_str=None):
     checkpoint_relative_path 例如是 "20250609_21/model_final.pt"
     """
     # 结果保存目录
-    inference_results_dir = setup_inference_directory(checkpoint_relative_path)
+    inference_paths = setup_inference_directory(checkpoint_relative_path)
 
     # 基本配置
     device = config.DEVICE
     stats = torch.load(config.NORMALIZATION_STATS_PATH)
     min_sst,max_sst = stats['min_sst'], stats['max_sst']
-    try:
-        any_raw_file = glob.glob(os.path.join(config.DATA_RAW_PATH, "*.nc"))[0]
-        sample_sst_raw, _, _ = load_single_nc_file(any_raw_file)
-        sample_sst_cropped = crop_image(sample_sst_raw, config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH)
-        coords_for_saving = sample_sst_cropped.coords
-    except Exception as e:
-        print(f"警告: 加载坐标信息失败: {e}。将无法保存为带坐标的 .nc 文件。"); coords_for_saving = None
 
     model = get_diffusion_model()
     checkpoint_full_path = os.path.join(config.CHECKPOINT_PATH, checkpoint_relative_path)
@@ -156,14 +151,20 @@ def run_inference(checkpoint_relative_path ,inference_start_date_str=None):
     land_sea_mask_np = torch.load(config.LAND_SEA_MASK_PATH).numpy()
     ref_year = datetime.strptime(config.DATA_START_DATE,"%Y-%m-%d").year
 
+    # 从样本文件中加载地理坐标信息
+    print("加载地理坐标信息用于保存.nc文件...")
+    lat_coords_np, lon_coords_np = None, None
+
+    any_raw_file = glob.glob(os.path.join(config.DATA_RAW_PATH, "*.nc"))[0]
+    sample_sst_raw, _, _ = load_single_nc_file(any_raw_file)
+    sample_sst_cropped = crop_image(sample_sst_raw, config.IMAGE_TARGET_HEIGHT, config.IMAGE_TARGET_WIDTH)
+        
+    # 从裁剪后的 xarray 对象中提取出坐标的Numpy数组
+    lat_coords_np = sample_sst_cropped[config.LAT_VARIABLE_NAME].values
+    lon_coords_np = sample_sst_cropped[config.LON_VARIABLE_NAME].values
+
     # 调用统一的核心逻辑函数
     _run_inference_logic(model, noise_scheduler, current_history_all_coords, valid_coords, 
-                         inference_start_date_dt, min_sst, max_sst, ref_year, land_sea_mask_np, coords_for_saving,
-                         inference_results_dir)
+                         inference_start_date_dt, min_sst, max_sst, ref_year, land_sea_mask_np, 
+                         lat_coords_np,lon_coords_np,inference_paths)
 
-#     # 推理主体函数
-# if __name__ == "__main__":
-#     # python -m src.inference
-#     run_inference(checkpoint_filename="model_final.pt", inference_start_date_str=None)
-#     # 可以根据需要修改checkpoint_filename和inference_start_date_str参数
-#     # inference_start_date_str可以设置为特定日期字符串，如"2023-10-01"，如果不设置则默认从训练结束后的下一天开始推理。

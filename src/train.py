@@ -4,6 +4,7 @@ from diffusers.optimization import get_scheduler as get_lr_scheduler
 from torch.optim import AdamW
 import os
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from . import config
@@ -35,6 +36,9 @@ def run_training():
     model = get_diffusion_model() 
     device = config.DEVICE
     print(f"模型参数总数: {sum(p.numel() for p in model.parameters() if p.requires_grad)}")
+    
+    if config.DEVICE == "cuda" and torch.cuda.device_count() > 1:
+        model = nn.DataParallel(model, device_ids=config.GPU_IDS)  # 多GPU
     model.to(device)
 
     # 3. 初始化 DDPM 噪声调度器
@@ -117,7 +121,7 @@ def run_training():
             save_checkpoint(epoch + 1, model, optimizer, avg_epoch_loss_value, checkpoint_filepath)
 
     # 最终保存一次模型和loss图 (确保最后的状态被保存)
-    final_model_path = os.path.join(config.CHECKPOINT_PATH, "model_final.pt")
+    final_model_path = os.path.join(train_run_dir, "model_final.pt")
     final_loss_value = epoch_losses_history[-1] if epoch_losses_history else float('inf')
     save_checkpoint(config.NUM_EPOCHS, model, optimizer, final_loss_value, final_model_path)
 
