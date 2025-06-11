@@ -118,11 +118,11 @@ def run_training(run_name=None):
         print(f"轮次 {epoch+1} 完成。平均训练损失: {avg_epoch_loss_value:.4f}, 当前学习率: {lr_scheduler.get_last_lr()[0]:.2e}")
 
         if (epoch + 1) % config.SAVE_EPOCH_INTERVAL == 0 :
-            checkpoint_filepath = os.path.join(train_run_dir, f"model_epoch_{epoch+1}.pt")
+            checkpoint_filepath = os.path.join(train_run_dir, f"model_epoch_{epoch+1}.pth")
             save_checkpoint(epoch + 1, model, optimizer, avg_epoch_loss_value, checkpoint_filepath)
 
     # 最终保存一次模型和loss图 (确保最后的状态被保存)
-    final_model_path = os.path.join(train_run_dir, "model_final.pt")
+    final_model_path = os.path.join(train_run_dir, "model_final.pth")
     final_loss_value = epoch_losses_history[-1] if epoch_losses_history else float('inf')
     save_checkpoint(config.NUM_EPOCHS, model, optimizer, final_loss_value, final_model_path)
 

@@ -48,7 +48,7 @@ def main():
         print(" === [独立模式] 执行模型推理 ===")
         if not args.checkpoint:
             parser.error("--inference 操作需要一个 --checkpoint 参数来指定模型。")
-        run_inference(checkpoint_relative_path=args.checkpoint)
+        run_inference(checkpoint_path=args.checkpoint)
     elif args.pipeline:
         print(" === [自动化流程模式] 开始执行 ===")
         run_name = f"run_{datetime.now().strftime('%Y%m%d_%H')}"
@@ -63,7 +63,7 @@ def main():
         print("--- 模型训练完成 ---\n")
 
         print("--- 步骤 3/3: 执行模型推理 ---")
-        checkpoint_for_pipeline = os.path.join(run_name, "model_final.pt")
+        checkpoint_for_pipeline = os.path.join("checkpoints",run_name, "model_final.pth")
         run_inference(checkpoint_relative_path=checkpoint_for_pipeline)
         print("--- 模型推理完成 ---\n")
     
@@ -91,8 +91,8 @@ if __name__ == "__main__":
     #       python -m src.main --train --run-name "my_gan_experiment"
     #
     # 3. 仅对一个已存在的模型执行推理 (必须提供 --checkpoint)
-    #    python -m src.main --inference --checkpoint "my_gan_experiment/model_final.pt"
-    #    python -m src.main --inference --checkpoint "run_20250611_111000/model_epoch_50.pt"
+    #    python -m src.main --inference --checkpoint "checkpoint/my_gan_experiment/model_final.pt"
+    #    python -m src.main --inference --checkpoint "checkpoint/run_20250611_111000/model_epoch_50.pt"
     #
     
     main()

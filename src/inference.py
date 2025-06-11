@@ -106,16 +106,16 @@ def _print_summary_metrics(evaluation_metrics):
             print(f"  {lead_time}: 无评估数据")
 
 
-def run_inference(checkpoint_relative_path):
+def run_inference(checkpoint_path):
     """
     总推理入口
 
     Args:
         checkpoint_relative_path (str): 从 'checkpoints/' 目录开始的模型文件相对路径。
-                                         例如: 'run_20250611_11/model_final.pt'
+                                         例如: 'checkpoints/run_20250611_11/model_final.pth'
     """
     # 结果保存目录
-    inference_paths = setup_inference_directory(checkpoint_relative_path)
+    inference_paths = setup_inference_directory(checkpoint_path)
 
     # 基本配置
     device = config.DEVICE
@@ -123,8 +123,7 @@ def run_inference(checkpoint_relative_path):
     min_sst,max_sst = stats['min_sst'], stats['max_sst']
 
     model = get_diffusion_model()
-    checkpoint_full_path = os.path.join(config.CHECKPOINT_PATH, checkpoint_relative_path)
-    model = load_checkpoint(os.path.join(config.CHECKPOINT_PATH,checkpoint_full_path),model, device) 
+    model = load_checkpoint(checkpoint_path,model, device) 
    
     noise_scheduler = DDPMScheduler(num_train_timesteps=config.DDPM_NUM_TRAIN_TIMESTEPS, beta_schedule=config.DDPM_BETA_SCHEDULE)
     noise_scheduler.set_timesteps(config.DDPM_NUM_INFERENCE_STEPS) 

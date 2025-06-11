@@ -28,7 +28,7 @@ class SSTDatasetBase(Dataset):
         print(f"为 '{self.mode}' 模式初始化 {self.__class__.__name__}: {self.start_date_dt.strftime('%Y-%m-%d')} 到 {self.end_date_dt.strftime('%Y-%m-%d')}")
 
         # 加载所有patches到内存
-        self.all_loaded_patches = self._load_patches_into_memory()
+        self. all_loaded_patches = self._load_patches_into_memory()
 
         # 构建样本序列
         self.samples = self._build_samples()

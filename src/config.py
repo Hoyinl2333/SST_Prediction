@@ -70,7 +70,7 @@ DDPM_BETA_SCHEDULE = "linear"
 
 # --- 推理参数 ---
 DDPM_NUM_INFERENCE_STEPS = 1
-AUTOREGRESSIVE_PREDICT_DAYS = 3
+AUTOREGRESSIVE_PREDICT_DAYS = 7
 
 # --- 结果保存路径 ---
 RESULTS_PATH = os.path.join(PROJECT_ROOT, "results")

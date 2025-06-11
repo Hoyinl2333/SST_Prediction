@@ -218,9 +218,10 @@ def setup_train_directory(run_name=None):
 
 def setup_inference_directory(checkpoint_relative_path: str):
     """根据所使用的checkpoint路径，为单次推理运行创建专属结果目录。"""
-    # 例如, checkpoint_relative_path = "20250609_21/model_final.pt"
+    # 例如, checkpoint_relative_path = "checkpoints/20250609_21/model_final.pth"
     # 我们希望生成 "20250609_21_model_final"
-    dir_name = checkpoint_relative_path.replace("/", "_").replace("\\", "_").replace(".pt", "").replace(".pth", "")
+    dir_name = checkpoint_relative_path.replace("\\",'/').split("checkpoints/")[-1]
+    dir_name = dir_name.replace("/", "_").replace(".pth", "")
     inference_run_dir = os.path.join(config.RESULTS_PATH, dir_name)
     
     inference_run_dir = os.path.join(config.RESULTS_PATH, dir_name)
